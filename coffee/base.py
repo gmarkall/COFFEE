@@ -41,6 +41,7 @@ try:
 except ImportError:
     from ordereddict import OrderedDict
 from copy import deepcopy as dcopy
+from copy import copy as scopy
 
 # Utilities for simple exprs and commands
 point = lambda p: "[%s]" % p
@@ -111,6 +112,10 @@ class Node(object):
     @property
     def pragma(self):
         return self._pragma
+
+    @property
+    def has_children(self):
+        return bool(self.children)
 
     @pragma.setter
     def pragma(self, _pragma):
@@ -251,6 +256,10 @@ class Cast(UnaryExpr):
     def __init__(self, cast_type, expr):
         super(Cast, self).__init__(expr)
         self.cast_type = as_symbol(cast_type)
+
+    def __deepcopy__(self, memo):
+        """This copy method allows the passing in of a cast type."""
+        return self.__class__(self.cast_type, dcopy(self.children[0]))
 
     def gencode(self, scope=True):
         return "(%s) %s" % (str(self.cast_type), wrap(self.children[0].gencode()))
@@ -710,29 +719,6 @@ class For(Statement):
         elif isinstance(self.init, Assign):
             return self.init.children[0]
 
-    def set_itvar(self, new_var):
-        # Change the name of the index init
-        if isinstance(self.init, Decl):
-            self.init.sym.symbol = new_var
-        elif isinstance(self.init, Assign):
-            self.init.children[0].symbol = new_var
-        else:
-            raise NotImplemented("Don't know how to change index name in this init node.")
-        # Change the name of the index in the comparison
-        if isinstance(self.cond.children[0], Symbol):
-            self.cond.children[0].symbol = new_var
-        elif isinstance(self.cond.children[0], str):
-            self.cond.children[0] = new_var
-        else:
-            raise NotImplemented("Don't know how to change index name in this condition node.")
-        # Change the name of the index in the increment
-        if isinstance(self.incr.children[0], Symbol):
-            self.incr.children[0].symbol = new_var
-        elif isinstance(self.incr.children[0], str):
-            self.incr.children[0] = new_var
-        else:
-            raise NotImplemented("Don't know how to change index name in this increment node.")
-
     @property
     def start(self):
         return self.init.init.symbol
@@ -797,7 +783,6 @@ class If(Statement):
     """
 
     def __init__(self, if_expr, branches):
-        # TODO: Re-implement this using two arguments a then branch and an optional else branch
         self.then_body = branches[0]
         if not isinstance(branches[0], Node):
             self.then_body = Block(branches[0], open_scope=True)
