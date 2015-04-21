@@ -455,6 +455,7 @@ def visit(node, parent=None, search=None, stop_on_search=False):
             if access_mode[0] == WRITE:
                 info['symbols_written'][node.symbol] = wcopy(cur_nest)
             if node.symbol in info['symbols_written']:
+                # ...Finally update loop dependencies if not read-only
                 dep = tuple(l for l, _ in info['symbols_written'][node.symbol])
             info['symbols_dep'][node] = dep
             info['symbols_mode'][node] = access_mode
