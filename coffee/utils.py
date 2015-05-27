@@ -80,7 +80,7 @@ def unroll_factors(loops):
 
     v = inspectors.DetermineUnrollFactors()
 
-    unrolls = [v.visit(l) for l in loops]
+    unrolls = [v.visit(l, ret=v.default_retval()) for l in loops]
     ret = unrolls[0]
     ret.update(d for d in unrolls[1:])
     return ret
@@ -395,10 +395,11 @@ def visit(node, parent=None, info_items=None):
         info_items = ['decls', 'symbols_dep', 'symbol_refs',
                       'symbols_mode', 'exprs', 'fors']
     if 'decls' in info_items:
-        info['decls'] = SymbolDeclarations().visit(node)
+        info['decls'] = SymbolDeclarations().visit(node, ret=SymbolDeclarations.default_retval())
 
     if 'symbols_dep' in info_items:
-        deps = SymbolDependencies().visit(node, **SymbolDependencies.default_args)
+        deps = SymbolDependencies().visit(node, ret=SymbolDependencies.default_retval(),
+                                          **SymbolDependencies.default_args)
         # Prune access mode:
         for k in deps.keys():
             if type(k) is not Symbol:
@@ -406,16 +407,16 @@ def visit(node, parent=None, info_items=None):
         info['symbols_dep'] = deps
 
     if 'exprs' in info_items:
-        info['exprs'] = FindCoffeeExpressions().visit(node, parent=parent)
+        info['exprs'] = FindCoffeeExpressions().visit(node, parent=parent, ret=FindCoffeeExpressions.default_retval())
 
     if 'fors' in info_items:
-        info['fors'] = FindLoopNests().visit(node, parent=parent)
+        info['fors'] = FindLoopNests().visit(node, parent=parent, ret=FindLoopNests.default_retval())
 
     if 'symbol_refs' in info_items:
-        info['symbol_refs'] = SymbolReferences().visit(node, parent=parent)
+        info['symbol_refs'] = SymbolReferences().visit(node, parent=parent, ret=SymbolReferences.default_retval())
 
     if 'symbols_mode' in info_items:
-        info['symbols_mode'] = SymbolModes().visit(node, parent=parent)
+        info['symbols_mode'] = SymbolModes().visit(node, parent=parent, ret=SymbolModes.default_retval())
 
     return info
 
@@ -487,7 +488,7 @@ def count(node, mode='symbol', read_only=False):
         raise RuntimeError("`Count` function got a wrong mode (valid: %s)" % modes)
 
     v = CountOccurences(key=key, only_rvalues=read_only)
-    return v.visit(node)
+    return v.visit(node, ret=v.default_retval())
 
 
 def check_type(stmt, decls):
@@ -501,8 +502,8 @@ def check_type(stmt, decls):
                   the name of a symbol) to Decl nodes
     """
     v = SymbolReferences()
-    lhs_symbol = v.visit(stmt.children[0], parent=stmt).keys()[0]
-    rhs_symbols = v.visit(stmt.children[1], parent=stmt).keys()
+    lhs_symbol = v.visit(stmt.children[0], parent=stmt, ret=v.default_retval()).keys()[0]
+    rhs_symbols = v.visit(stmt.children[1], parent=stmt, ret=v.default_retval()).keys()
 
     lhs_decl = decls[lhs_symbol]
     rhs_decls = [decls[s] for s in rhs_symbols if s in decls]

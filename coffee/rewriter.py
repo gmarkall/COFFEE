@@ -143,7 +143,7 @@ class ExpressionRewriter(object):
                      * mode == 'full': expansion is performed aggressively without \
                                        any specific restrictions.
         """
-        symbols = FindInstances(Symbol).visit(self.stmt.children[1])[Symbol]
+        symbols = FindInstances(Symbol).visit(self.stmt.children[1], ret=FindInstances.default_retval())[Symbol]
 
         # Select the expansion strategy
         if mode == 'standard':
@@ -188,7 +188,7 @@ class ExpressionRewriter(object):
                                             grouped together, within the obvious \
                                             limits imposed by the expression itself.
         """
-        symbols = FindInstances(Symbol).visit(self.stmt.children[1])[Symbol]
+        symbols = FindInstances(Symbol).visit(self.stmt.children[1], ret=FindInstances.default_retval())[Symbol]
 
         # Select the expansion strategy
         if mode == 'standard':
@@ -280,7 +280,7 @@ class ExpressionRewriter(object):
         # Full unroll any unrollable, injectable loop
         for nest in injectable_nests:
             to_unroll = [(l, p) for l, p in nest if l not in self.expr_info.loops]
-            nest_writers = FindInstances(Writer).visit(to_unroll[0][0])
+            nest_writers = FindInstances(Writer).visit(to_unroll[0][0], ret=FindInstances.default_retval())
             for op, stmts in nest_writers.items():
                 if op in [Assign, IMul, IDiv]:
                     # Unroll is unsafe, skip
@@ -295,7 +295,7 @@ class ExpressionRewriter(object):
                         inject_expr = [dcopy(expr) for i in range(l.size)]
                         # Update rank of symbols
                         for i, e in enumerate(inject_expr):
-                            e_syms = FindInstances(Symbol).visit(e)[Symbol]
+                            e_syms = FindInstances(Symbol).visit(e, ret=FindInstances.default_retval())[Symbol]
                             for s in e_syms:
                                 s.rank = tuple([r if r != l.dim else i for r in s.rank])
                         expr = ast_make_expr(Sum, inject_expr)
@@ -324,7 +324,7 @@ class ExpressionRewriter(object):
         stmt, expr_info = self.stmt, self.expr_info
 
         # Division replacement
-        divisions = FindInstances(Div).visit(stmt.children[1])[Div]
+        divisions = FindInstances(Div).visit(stmt.children[1], ret=FindInstances.default_retval())[Div]
         to_replace = {}
         for i in divisions:
             if isinstance(i.right, Symbol) and isinstance(i.right.symbol, float):
@@ -337,13 +337,14 @@ class ExpressionRewriter(object):
         if not isinstance(stmt, (Incr, Decr, IMul, IDiv)):
             # Not a reduction expression, give up
             return
-        expr_syms = FindInstances(Symbol).visit(stmt.children[1])[Symbol]
+        expr_syms = FindInstances(Symbol).visit(stmt.children[1], ret=FindInstances.default_retval())[Symbol]
         reduction_loops = expr_info.out_domain_loops_info
         if any([not is_perfect_loop(l) for l, p in reduction_loops]):
             # Unsafe if not a perfect loop nest
             return
         for i, (l, p) in enumerate(reduction_loops):
-            syms_dep = SymbolDependencies().visit(l, **SymbolDependencies.default_args)
+            syms_dep = SymbolDependencies().visit(l, ret=SymbolDependencies.default_retval(),
+                                                  **SymbolDependencies.default_args)
             if not all([tuple(syms_dep[s]) == expr_info.loops and
                         s.dim == len(expr_info.loops) for s in expr_syms if syms_dep[s]]):
                 # A sufficient (although not necessary) condition for loop reduction to
@@ -357,7 +358,7 @@ class ExpressionRewriter(object):
             if not all([s.symbol in self.hoisted for s in reducible_syms]):
                 return
             # Replace hoisted assignments with reductions
-            finder = FindInstances(Assign, stop_when_found=True, with_parent=True)
+            finder = FindInstances(Assign, stop_when_found=True, with_parent=True, ret=FindInstances.default_retval())
             for hoisted_loop in self.hoisted.all_loops:
                 for assign, parent in finder.visit(hoisted_loop)[Assign]:
                     sym, expr = assign.children
@@ -661,7 +662,7 @@ class ExpressionExpander(object):
 
         # First, check if any of the symbols in /exp/ have been hoisted
         try:
-            exp = [s for s in FindInstances(Symbol).visit(exp)[Symbol]
+            exp = [s for s in FindInstances(Symbol).visit(exp, ret=FindInstances.default_retval())[Symbol]
                    if s.symbol in self.hoisted and self.should_expand(s)][0]
         except:
             # No hoisted symbols in the expanded expression, so return
@@ -681,7 +682,7 @@ class ExpressionExpander(object):
         op = expansion.__class__
 
         # Is the grouped symbol hoistable, or does it break some data dependency?
-        grp_syms = SymbolReferences().visit(grp).keys()
+        grp_syms = SymbolReferences().visit(grp, ret=SymbolReferences.default_retval()).keys()
         for l in reversed(self.expr_info.loops):
             for g in grp_syms:
                 g_refs = self.info['symbol_refs'][g]

@@ -96,7 +96,7 @@ class ASTKernel(object):
 
         # The optimization passes are performed individually (i.e., "locally") for
         # each function (or "kernel") found in the provided AST
-        kernels = FindInstances(FunDecl, stop_when_found=True).visit(self.ast)[FunDecl]
+        kernels = FindInstances(FunDecl, stop_when_found=True, ret=FindInstances.default_retval()).visit(self.ast)[FunDecl]
         for kernel in kernels:
             info = visit(kernel, info_items=['decls', 'exprs'])
             decls = info['decls']
@@ -274,7 +274,8 @@ class ASTKernel(object):
 
             return loop_opts
 
-        kernels = FindInstances(FunDecl, stop_when_found=True).visit(self.ast)[FunDecl]
+        kernels = FindInstances(FunDecl, stop_when_found=True).visit(self.ast,
+                                                                     ret=FindInstances.default_retval())[FunDecl]
         if opts.get('autotune'):
             if not (compiler and isa):
                 raise RuntimeError("Must initialize COFFEE prior to autotuning")
