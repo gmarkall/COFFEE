@@ -38,7 +38,6 @@ import operator
 from warnings import warn as warning
 from copy import deepcopy as dcopy
 from collections import defaultdict, OrderedDict
-from sys import maxint
 
 from base import *
 from coffee.visitors.inspectors import *
@@ -581,13 +580,10 @@ class ItSpace():
 
         if len(itspaces) in [0, 1]:
             return ()
-        itspaces = [set(range(i[0], i[1]+1)) for i in itspaces]
-        try:
-            itspace = set.intersection(*itspaces)
-            itspace = sorted(list(itspace))
-            itspaces = [(itspace[0], itspace[-1])]
-        except:
-            return ()
+        itspaces = [set(range(i[0], i[1])) for i in itspaces]
+        itspace = set.intersection(*itspaces)
+        itspace = sorted(list(itspace)) or [0, -1]
+        itspaces = [(itspace[0], itspace[-1]+1)]
 
         itspace = self._convert_from_mode0(itspaces)[0]
         return itspace
