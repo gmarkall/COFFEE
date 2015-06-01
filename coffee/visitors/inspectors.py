@@ -438,6 +438,12 @@ class SymbolModes(Visitor):
     def visit_object(self, o, env):
         return {}
 
+    def visit_list(self, o, env):
+        ret = OrderedDict()
+        for i in o:
+            ret.update(self.visit(i, env=env))
+        return ret
+
     def visit_Node(self, o, env):
         new_env = Environment(env, node_parent=o)
         ret = OrderedDict()
