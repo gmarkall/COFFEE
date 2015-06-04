@@ -126,6 +126,8 @@ class LoopOptimizer(object):
                     ew.reassociate()
                     ew.licm(hoist_domain_const=True)
                     ew.simplify()
+                    ew.factorize(mode='immutable')
+                    ew.licm(hoist_out_domain=True)
 
             # 2) Try merging and optimizing the loops created by rewriting
             merged_loops = SSALoopMerger(ew.expr_graph).merge(self.header)
