@@ -122,6 +122,7 @@ class LoopOptimizer(object):
                     ew.expand(mode='full')
                     ew.factorize(mode='immutable')
                     ew.licm(hoist_out_domain=True)
+                    ew.factorize(mode='constants')
                     ew.reassociate()
                     ew.licm(hoist_domain_const=True)
                     ew.simplify()
