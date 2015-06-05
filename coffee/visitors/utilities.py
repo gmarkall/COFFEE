@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import itertools
 import operator
 from copy import deepcopy
+from collections import OrderedDict
 import numpy as np
 
 from coffee.visitor import Visitor, Environment
@@ -117,13 +118,13 @@ class Evaluate(Visitor):
         return {}
 
     def visit_list(self, o, env):
-        ret = {}
+        ret = OrderedDict()
         for entry in o:
             ret.update(self.visit(entry, env=env))
         return ret
 
     def visit_Node(self, o, env):
-        ret = {}
+        ret = OrderedDict()
         for n in o.children:
             ret.update(self.visit(n, env=env))
         return ret
