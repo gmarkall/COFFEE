@@ -289,7 +289,7 @@ class ExpressionRewriter(object):
             # expressions leads, in the /worst case/, to an exponential
             # increase in the number of symbols in the AST
             if math.pow(niters, injected_exprs) > injection_recoil.ths:
-                sys.setrecursionlimit(2000)
+                sys.setrecursionlimit(3000)
         injection_recoil.ths = 100
 
 
